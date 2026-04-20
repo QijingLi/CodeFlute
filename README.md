@@ -1,0 +1,62 @@
+# CodeFlute
+
+CodeFlute is a Zig-based command-line tool designed to help you interact with and modify your codebase using Large Language Models (LLMs). It is optimized for speed and provides a set of surgical tools for common development tasks.
+
+## Features
+
+- **Ask**: Query your codebase or get general programming assistance directly from the terminal.
+- **Fix**: Provide a file and an instruction, and let the LLM automatically apply the changes for you.
+- **Search**: Fast, local pattern matching across your project files.
+- **Config**: Easy management of API keys and LLM providers.
+- **Native Zig**: Built with Zig 0.15.2, utilizing standard library features for networking and decompression.
+
+## Installation
+
+### Prerequisites
+
+- [Zig 0.15.2](https://ziglang.org/download/)
+- [OpenSSL](https://www.openssl.org/) (usually pre-installed on macOS/Linux)
+
+### Building
+
+Clone the repository and build the project using Zig:
+
+```bash
+zig build -Doptimize=ReleaseSafe
+```
+
+The executable will be located at `./zig-out/bin/codeflute`.
+
+## Configuration
+
+CodeFlute defaults to using the Google Gemini API. To get started, you need to set your API key:
+
+```bash
+./zig-out/bin/codeflute config set-key YOUR_GOOGLE_AI_STUDIO_API_KEY
+```
+
+Configuration is stored in `~/.codeflute/config.json`. You can manually edit this file to change the `api_base` or `model` if you wish to use an OpenAI-compatible provider.
+
+## Usage
+
+### Ask a question
+Get quick answers about code or concepts:
+```bash
+./zig-out/bin/codeflute ask "How do I implement a linked list in Zig?"
+```
+
+### Fix a file
+Automatically modify a file based on a natural language instruction:
+```bash
+./zig-out/bin/codeflute fix src/main.zig "refactor the handleConfig function to use a switch statement"
+```
+
+### Search the codebase
+Search for a pattern across all files (excluding build/cache directories):
+```bash
+./zig-out/bin/codeflute search "std.heap.GeneralPurposeAllocator"
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
