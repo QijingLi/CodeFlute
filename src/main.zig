@@ -3,6 +3,21 @@ const config = @import("config.zig");
 const search = @import("search.zig");
 const api = @import("api.zig");
 
+const Command = enum {
+    config,
+    ask,
+    search,
+    fix,
+
+    pub fn parse(s: []const u8) ?Command {
+        if (std.mem.eql(u8, s, "config")) return .config;
+        if (std.mem.eql(u8, s, "ask")) return .ask;
+        if (std.mem.eql(u8, s, "search")) return .search;
+        if (std.mem.eql(u8, s, "fix")) return .fix;
+        return null;
+    }
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -16,17 +31,17 @@ pub fn main() !void {
         return;
     }
 
-    const command = args[1];
-    if (std.mem.eql(u8, command, "config")) {
-        try handleConfig(allocator, args[2..]);
-    } else if (std.mem.eql(u8, command, "ask")) {
-        try handleAsk(allocator, args[2..]);
-    } else if (std.mem.eql(u8, command, "search")) {
-        try handleSearch(allocator, args[2..]);
-    } else if (std.mem.eql(u8, command, "fix")) {
-        try handleFix(allocator, args[2..]);
-    } else {
+    const command_str = args[1];
+    const command = Command.parse(command_str) orelse {
         printUsage();
+        return;
+    };
+
+    switch (command) {
+        .config => try handleConfig(allocator, args[2..]),
+        .ask => try handleAsk(allocator, args[2..]),
+        .search => try handleSearch(allocator, args[2..]),
+        .fix => try handleFix(allocator, args[2..]),
     }
 }
 
@@ -82,16 +97,18 @@ fn handleAsk(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer allocator.free(response);
 
     const parsed = try std.json.parseFromSlice(struct {
-        choices: []struct {
-            message: struct {
-                content: []const u8,
+        candidates: []struct {
+            content: struct {
+                parts: []struct {
+                    text: []const u8,
+                },
             },
         },
     }, allocator, response, .{ .ignore_unknown_fields = true });
     defer parsed.deinit();
 
-    if (parsed.value.choices.len > 0) {
-        std.debug.print("{s}\n", .{parsed.value.choices[0].message.content});
+    if (parsed.value.candidates.len > 0 and parsed.value.candidates[0].content.parts.len > 0) {
+        std.debug.print("{s}\n", .{parsed.value.candidates[0].content.parts[0].text});
     } else {
         std.debug.print("No response from LLM.\n", .{});
     }
@@ -144,16 +161,18 @@ fn handleFix(allocator: std.mem.Allocator, args: []const []const u8) !void {
     defer allocator.free(response);
 
     const parsed = try std.json.parseFromSlice(struct {
-        choices: []struct {
-            message: struct {
-                content: []const u8,
+        candidates: []struct {
+            content: struct {
+                parts: []struct {
+                    text: []const u8,
+                },
             },
         },
     }, allocator, response, .{ .ignore_unknown_fields = true });
     defer parsed.deinit();
 
-    if (parsed.value.choices.len > 0) {
-        const fixed_code = parsed.value.choices[0].message.content;
+    if (parsed.value.candidates.len > 0 and parsed.value.candidates[0].content.parts.len > 0) {
+        const fixed_code = parsed.value.candidates[0].content.parts[0].text;
         
         // Overwrite the file
         const out_file = try std.fs.cwd().createFile(file_path, .{});
