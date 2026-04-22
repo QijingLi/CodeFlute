@@ -8,7 +8,7 @@ CodeFlute is a Zig-based command-line tool designed to help you interact with an
 - **Fix**: Provide a file and an instruction, and let the LLM automatically apply the changes for you.
 - **Search**: Fast, local pattern matching across your project files.
 - **Config**: Easy management of API keys and LLM providers.
-- **Native Zig**: Built with Zig 0.15.2, utilizing standard library features for networking and decompression.
+- **Native Zig**: Built with Zig 0.15.2, utilizing standard library features for networking and robust decompression.
 
 ## Installation
 

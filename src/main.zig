@@ -18,6 +18,12 @@ const Command = enum {
     }
 };
 
+test {
+    _ = @import("api.zig");
+    _ = @import("config.zig");
+    _ = @import("search.zig");
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -96,22 +102,10 @@ fn handleAsk(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const response = try api.callLLM(allocator, cfg, query);
     defer allocator.free(response);
 
-    const parsed = try std.json.parseFromSlice(struct {
-        candidates: []struct {
-            content: struct {
-                parts: []struct {
-                    text: []const u8,
-                },
-            },
-        },
-    }, allocator, response, .{ .ignore_unknown_fields = true });
-    defer parsed.deinit();
+    const content = try api.parseLLMResponse(allocator, response);
+    defer allocator.free(content);
 
-    if (parsed.value.candidates.len > 0 and parsed.value.candidates[0].content.parts.len > 0) {
-        std.debug.print("{s}\n", .{parsed.value.candidates[0].content.parts[0].text});
-    } else {
-        std.debug.print("No response from LLM.\n", .{});
-    }
+    std.debug.print("{s}\n", .{content});
 }
 
 fn handleSearch(allocator: std.mem.Allocator, args: []const []const u8) !void {
@@ -121,7 +115,9 @@ fn handleSearch(allocator: std.mem.Allocator, args: []const []const u8) !void {
     }
 
     const pattern = args[0];
-    try search.searchInFiles(allocator, pattern);
+    var dir = try std.fs.cwd().openDir(".", .{ .iterate = true });
+    defer dir.close();
+    try search.searchInFiles(allocator, dir, pattern);
 }
 
 fn handleFix(allocator: std.mem.Allocator, args: []const []const u8) !void {
@@ -160,27 +156,13 @@ fn handleFix(allocator: std.mem.Allocator, args: []const []const u8) !void {
     const response = try api.callLLM(allocator, cfg, prompt);
     defer allocator.free(response);
 
-    const parsed = try std.json.parseFromSlice(struct {
-        candidates: []struct {
-            content: struct {
-                parts: []struct {
-                    text: []const u8,
-                },
-            },
-        },
-    }, allocator, response, .{ .ignore_unknown_fields = true });
-    defer parsed.deinit();
+    const fixed_code = try api.parseLLMResponse(allocator, response);
+    defer allocator.free(fixed_code);
 
-    if (parsed.value.candidates.len > 0 and parsed.value.candidates[0].content.parts.len > 0) {
-        const fixed_code = parsed.value.candidates[0].content.parts[0].text;
-        
-        // Overwrite the file
-        const out_file = try std.fs.cwd().createFile(file_path, .{});
-        defer out_file.close();
-        try out_file.writeAll(fixed_code);
-        
-        std.debug.print("Successfully fixed {s}.\n", .{file_path});
-    } else {
-        std.debug.print("No response from LLM.\n", .{});
-    }
+    // Overwrite the file
+    const out_file = try std.fs.cwd().createFile(file_path, .{});
+    defer out_file.close();
+    try out_file.writeAll(fixed_code);
+    
+    std.debug.print("Successfully fixed {s}.\n", .{file_path});
 }

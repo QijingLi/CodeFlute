@@ -66,3 +66,58 @@ pub fn callLLM(allocator: std.mem.Allocator, cfg: config.Config, prompt: []const
         return try allocator.dupe(u8, raw_body);
     }
 }
+
+pub fn parseLLMResponse(allocator: std.mem.Allocator, response: []const u8) ![]u8 {
+    const parsed = try std.json.parseFromSlice(struct {
+        candidates: []struct {
+            content: struct {
+                parts: []struct {
+                    text: []const u8,
+                },
+            },
+        },
+    }, allocator, response, .{ .ignore_unknown_fields = true });
+    defer parsed.deinit();
+
+    if (parsed.value.candidates.len > 0 and parsed.value.candidates[0].content.parts.len > 0) {
+        return try allocator.dupe(u8, parsed.value.candidates[0].content.parts[0].text);
+    } else {
+        return error.NoResponse;
+    }
+}
+
+test "parseLLMResponse basic" {
+    const allocator = std.testing.allocator;
+    const response = 
+        \\{
+        \\  "candidates": [
+        \\    {
+        \\      "content": {
+        \\        "parts": [
+        \\          {
+        \\            "text": "Hello world"
+        \\          }
+        \\        ]
+        \\      }
+        \\    }
+        \\  ]
+        \\}
+    ;
+
+    const content = try parseLLMResponse(allocator, response);
+    defer allocator.free(content);
+    try std.testing.expectEqualStrings("Hello world", content);
+}
+
+test "parseLLMResponse no candidates" {
+    const allocator = std.testing.allocator;
+    const response = 
+        \\{
+        \\  "candidates": []
+        \\}
+    ;
+
+    try std.testing.expectError(error.NoResponse, parseLLMResponse(allocator, response));
+}
+
+

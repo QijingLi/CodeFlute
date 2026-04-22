@@ -1,10 +1,6 @@
 const std = @import("std");
 
-pub fn searchInFiles(allocator: std.mem.Allocator, pattern: []const u8) !void {
-    const cwd = std.fs.cwd();
-    var dir = try cwd.openDir(".", .{ .iterate = true });
-    defer dir.close();
-
+pub fn searchInFiles(allocator: std.mem.Allocator, dir: std.fs.Dir, pattern: []const u8) !void {
     var walker = try dir.walk(allocator);
     defer walker.deinit();
 
@@ -36,3 +32,17 @@ pub fn searchInFiles(allocator: std.mem.Allocator, pattern: []const u8) !void {
         }
     }
 }
+
+test "searchInFiles basic" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(.{ .sub_path = "test1.txt", .data = "hello world\nthis is a test\nzig is cool" });
+    try tmp.dir.writeFile(.{ .sub_path = "test2.txt", .data = "another file\nwith zig code" });
+
+    // Since searchInFiles prints to debug, we can't easily capture it,
+    // but we can at least ensure it doesn't crash.
+    try searchInFiles(allocator, tmp.dir, "zig");
+}
+
