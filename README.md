@@ -15,7 +15,6 @@ CodeFlute is a Zig-based command-line tool designed to help you interact with an
 ### Prerequisites
 
 - [Zig 0.15.2](https://ziglang.org/download/)
-- [OpenSSL](https://www.openssl.org/) (usually pre-installed on macOS/Linux)
 
 ### Building
 
