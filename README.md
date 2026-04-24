@@ -10,7 +10,7 @@ CodeFlute is a Zig-based command-line tool designed to help you interact with an
 
 ## Features
 
-- **Ask**: Query your codebase or get general programming assistance directly from the terminal.
+- **Ask**: A functional chatbot interface that communicates directly with the LLM via a native HTTP client for real-time assistance.
 - **Fix**: Provide a file and an instruction, and let the LLM automatically apply the changes for you.
 - **Search**: Fast, local pattern matching across your project files.
 - **Config**: Easy management of API keys and LLM providers.
